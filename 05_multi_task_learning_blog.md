@@ -2,7 +2,7 @@
 
 *Using shared neural network architectures to simultaneously predict CO₂, NOx, and SO₂ emissions with better accuracy than single-task models*
 
-**Kyle Jones**  
+Kyle Jones  
 12 min read · Oct 6, 2025
 
 ---
@@ -13,11 +13,11 @@ Then you need to predict NOx emissions. You build another model.
 
 Then SO₂ emissions. Another model.
 
-Now you're maintaining three separate models, training them separately, deploying them separately. And here's the kicker: **all three pollutants are closely related**. Coal plants emit all three. Gas plants emit mostly CO₂ and NOx. The combustion chemistry is linked.
+Now you're maintaining three separate models, training them separately, deploying them separately. And here's the kicker: all three pollutants are closely related. Coal plants emit all three. Gas plants emit mostly CO₂ and NOx. The combustion chemistry is linked.
 
 Your three models are learning the same patterns independently. That's inefficient.
 
-**Multi-Task Learning (MTL)** trains one model to predict all three simultaneously. The shared architecture learns common patterns once and applies them to all tasks. Result: better accuracy, faster training, and easier deployment.
+Multi-Task Learning (MTL) trains one model to predict all three simultaneously. The shared architecture learns common patterns once and applies them to all tasks. Result: better accuracy, faster training, and easier deployment.
 
 This article demonstrates MTL on 12,613 power plants, showing 15-20% accuracy improvements over single-task models. We'll build from scratch using TensorFlow, compare architectures, and explore when MTL works (and when it doesn't).
 
@@ -44,14 +44,14 @@ These aren't random variables—they're tightly coupled. Perfect for MTL.
 ## Architecture: Hard Parameter Sharing
 
 The classic MTL architecture has two components:
-1. **Shared layers:** Learn common representations across all tasks
-2. **Task-specific heads:** Specialize for each output
+1. Shared layers: Learn common representations across all tasks
+2. Task-specific heads: Specialize for each output
 
-**Shared layers** (128→64→32 neurons) learn common combustion patterns from the input features. These layers discover that "large coal plant" correlates with high emissions across all pollutants, "natural gas plant" produces lower emissions, "scrubber installation" reduces SO₂, etc. The patterns apply to all three tasks, so learning them once is efficient.
+Shared layers (128→64→32 neurons) learn common combustion patterns from the input features. These layers discover that "large coal plant" correlates with high emissions across all pollutants, "natural gas plant" produces lower emissions, "scrubber installation" reduces SO₂, etc. The patterns apply to all three tasks, so learning them once is efficient.
 
-**Task heads** are small 16-neuron layers that specialize for each pollutant. The CO₂ head learns CO₂-specific patterns (like carbon content variations by fuel type). The NOx head learns NOx-specific patterns (like combustion temperature effects). The SO₂ head learns SO₂-specific patterns (like sulfur content in coal quality).
+Task heads are small 16-neuron layers that specialize for each pollutant. The CO₂ head learns CO₂-specific patterns (like carbon content variations by fuel type). The NOx head learns NOx-specific patterns (like combustion temperature effects). The SO₂ head learns SO₂-specific patterns (like sulfur content in coal quality).
 
-**One forward pass** predicts all three outputs simultaneously. Features flow through shared layers once, then branch to three heads producing three predictions. This is fundamentally more efficient than three separate models, each processing features independently.
+One forward pass predicts all three outputs simultaneously. Features flow through shared layers once, then branch to three heads producing three predictions. This is fundamentally more efficient than three separate models, each processing features independently.
 
 The model architecture contains approximately 14,275 parameters (13,827 trainable, 448 non-trainable batch normalization parameters). For comparison, three single-task models with similar architecture would total ~30,000 parameters—the shared approach cuts parameters by more than half while improving accuracy.
 
@@ -81,9 +81,9 @@ Training uses the Adam optimizer with initial learning rate 0.001, batch size 64
 
 After 50 epochs (typically stopping early around epoch 30-35), evaluation on the test set reveals performance:
 
-**CO₂ MAE:** ~0.3845 (log scale)  
-**NOx MAE:** ~0.4891 (log scale)  
-**SO₂ MAE:** ~0.5102 (log scale)
+CO₂ MAE: ~0.3845 (log scale)  
+NOx MAE: ~0.4891 (log scale)  
+SO₂ MAE: ~0.5102 (log scale)
 
 These mean absolute errors quantify prediction accuracy. Lower is better. But the critical question: how do they compare to single-task baselines?
 
@@ -95,9 +95,9 @@ These mean absolute errors quantify prediction accuracy. Lower is better. But th
 
 To prove MTL helps, we train three separate single-task models with comparable architectures (128→64→32→16→1 neurons). Each model trains independently on its respective target using the same features, hyperparameters, and early stopping strategy.
 
-**CO₂ single-task MAE:** ~0.4523  
-**NOx single-task MAE:** ~0.5812  
-**SO₂ single-task MAE:** ~0.6234
+CO₂ single-task MAE: ~0.4523  
+NOx single-task MAE: ~0.5812  
+SO₂ single-task MAE: ~0.6234
 
 (See Complete Implementation section for single-task baseline code)
 
@@ -109,11 +109,11 @@ Comparing MTL to single-task baselines:
 
 | Task | Single-Task MAE | MTL MAE | Improvement % |
 |------|----------------|---------|---------------|
-| CO₂  | 0.4523         | 0.3845  | **15.0%**     |
-| NOx  | 0.5812         | 0.4891  | **15.8%**     |
-| SO₂  | 0.6234         | 0.5102  | **18.2%**     |
+| CO₂  | 0.4523         | 0.3845  | 15.0%     |
+| NOx  | 0.5812         | 0.4891  | 15.8%     |
+| SO₂  | 0.6234         | 0.5102  | 18.2%     |
 
-**MTL wins across all tasks!** 15-18% improvement by sharing knowledge between related prediction problems. The shared layers learn combustion patterns once and apply them to all pollutants, producing better generalization than models that learn independently.
+MTL wins across all tasks! 15-18% improvement by sharing knowledge between related prediction problems. The shared layers learn combustion patterns once and apply them to all pollutants, producing better generalization than models that learn independently.
 
 (See Complete Implementation section for comparison code)
 
@@ -125,7 +125,7 @@ Sometimes one task is more important than others. Task weighting allows prioriti
 
 For example, if CO₂ prediction is twice as important as NOx and SO₂, assign loss weights: CO₂=2.0, NOx=1.0, SO₂=1.0. During training, CO₂ errors contribute twice as much to total loss, forcing the model to optimize CO₂ more aggressively.
 
-**Trade-off:** Emphasizing one task improves it at the expense of others. The model still benefits from multi-task learning (shared patterns) but allocates more capacity to the prioritized task.
+Trade-off: Emphasizing one task improves it at the expense of others. The model still benefits from multi-task learning (shared patterns) but allocates more capacity to the prioritized task.
 
 Example results with CO₂ priority:
 - CO₂ MAE: Improves further (e.g., 0.3645 from 0.3845)
@@ -142,9 +142,9 @@ Use task weighting when you have clear business priorities—e.g., regulatory fo
 
 MTL assumes tasks help each other by sharing patterns. But what if tasks are unrelated?
 
-**Example:** Predicting emissions AND stock price from the same features. Emissions depend on combustion chemistry; stock price depends on market sentiment. No shared knowledge—tasks interfere with each other, a phenomenon called **negative transfer**.
+Example: Predicting emissions AND stock price from the same features. Emissions depend on combustion chemistry; stock price depends on market sentiment. No shared knowledge—tasks interfere with each other, a phenomenon called negative transfer.
 
-**How to detect negative transfer:**
+How to detect negative transfer:
 Compare MTL performance to single-task baselines. If MTL underperforms (higher error than single-task), tasks are incompatible. The shared layers learn compromises that hurt all tasks rather than patterns that help them.
 
 Solutions to negative transfer include soft parameter sharing (tasks have separate networks with L2 regularization encouraging but not forcing similarity), task grouping (only share between proven-related tasks such as CO₂ plus NOx share while SO₂ remains separate), gradual unfreezing (start with shared layers frozen, unfreeze gradually during training), and just use single-task models (sometimes simpler is better; don't force MTL when tasks don't benefit from sharing).
@@ -167,7 +167,7 @@ Soft sharing typically uses more parameters than hard sharing (three separate ne
 
 The trained MTL model saves to disk as a single file (mtl_emissions_predictor.h5). Loading and prediction work seamlessly:
 
-**Single API call** predicts all three pollutants from one set of features. The model processes inputs through shared layers once, then branches to three heads producing CO₂, NOx, and SO₂ predictions simultaneously.
+Single API call predicts all three pollutants from one set of features. The model processes inputs through shared layers once, then branches to three heads producing CO₂, NOx, and SO₂ predictions simultaneously.
 
 Production benefits are significant. A single endpoint means one API call predicts all three (versus three separate API calls). Consistent predictions ensure same features produce correlated outputs (CO₂ high means NOx likely high). Faster inference results from one forward pass versus three (3× speedup). Easier maintenance comes from one model to update, monitor, and deploy.
 
@@ -201,10 +201,10 @@ Don't use MTL when tasks are unrelated (emissions versus stock price), one task 
 
 Multi-Task Learning transforms three separate modeling problems into one unified system. For power plant emissions, we achieved:
 
-**15-20% accuracy improvement** across all pollutants by sharing combustion knowledge  
-**3× faster inference** (one forward pass vs three)  
-**Simpler deployment** (one model instead of three)  
-**Better data efficiency** (shared learning helps data-poor tasks)
+15-20% accuracy improvement across all pollutants by sharing combustion knowledge  
+3× faster inference (one forward pass vs three)  
+Simpler deployment (one model instead of three)  
+Better data efficiency (shared learning helps data-poor tasks)
 
 The techniques shown here—hard sharing for tightly coupled tasks, soft sharing for flexibility, task weighting for priorities—apply to any multi-output problem. Email classification? Predict spam, category, and priority simultaneously. E-commerce? Predict click, purchase, and return together.
 
@@ -214,7 +214,7 @@ One model, multiple tasks, better performance. That's the promise of Multi-Task 
 
 ---
 
-**Multi-Task Learning** · **Deep Learning** · **Neural Networks** · **Python** · **TensorFlow**
+Multi-Task Learning · Deep Learning · Neural Networks · Python · TensorFlow
 
 ---
 
