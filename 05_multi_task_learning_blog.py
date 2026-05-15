@@ -5,6 +5,9 @@ This code was automatically extracted from the markdown file.
 You may need to adjust imports and add necessary dependencies.
 """
 
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, TensorDataset
 import logging
 import sys
 
@@ -43,9 +46,98 @@ sns.heatmap(
 plt.title("Pollutant Correlations: Why MTL Works")
 plt.tight_layout()
 plt.savefig("pollutant_correlations.png", dpi=150)
-from tensorflow import keras
-from tensorflow.keras import layers
 
+
+class _MLPForecaster(nn.Module):
+    """MLP forecaster (auto-generated PyTorch replacement for Keras Sequential)."""
+    def __init__(self, n_features: int, output_size: int = 1):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Flatten(),
+            nn.LazyLinear(128), nn.ReLU(),
+            nn.Linear(128, 64), nn.ReLU(),
+            nn.Linear(64, 32), nn.ReLU(),
+            nn.Linear(32, 16), nn.ReLU(),
+            nn.Linear(16, 1), nn.ReLU(),
+            nn.Linear(1, 16), nn.ReLU(),
+            nn.Linear(16, 1), nn.ReLU(),
+            nn.Linear(1, 16), nn.ReLU(),
+            nn.Linear(16, 1), nn.ReLU(),
+            nn.Linear(1, 128), nn.ReLU(),
+            nn.Linear(128, 64), nn.ReLU(),
+            nn.Linear(64, 32), nn.ReLU(),
+            nn.Linear(32, 16), nn.ReLU(),
+            nn.Linear(16, 1), nn.ReLU(),
+            nn.Linear(1, 128), nn.ReLU(),
+            nn.Linear(128, 64), nn.ReLU(),
+            nn.Linear(64, 32), nn.ReLU(),
+            nn.Linear(32, 1), nn.ReLU(),
+            nn.Linear(1, 1), nn.ReLU(),
+            nn.Linear(1, 1), nn.ReLU(),
+            nn.Linear(1, 128), nn.ReLU(),
+            nn.Linear(128, 64), nn.ReLU(),
+            nn.Linear(64, 32), nn.ReLU(),
+            nn.Linear(32, 16), nn.ReLU(),
+            nn.Linear(16, 1), nn.ReLU(),
+            nn.Linear(1, 16), nn.ReLU(),
+            nn.Linear(16, 1), nn.ReLU(),
+            nn.Linear(1, 16), nn.ReLU(),
+            nn.Linear(16, 1), nn.ReLU(),
+            nn.Linear(1, 128), nn.ReLU(),
+            nn.Linear(128, 64), nn.ReLU(),
+            nn.Linear(64, 32), nn.ReLU(),
+            nn.Linear(32, 16), nn.ReLU(),
+            nn.Linear(16, 1), nn.ReLU(),
+            nn.Linear(1, 128), nn.ReLU(),
+            nn.Linear(128, 64), nn.ReLU(),
+            nn.Linear(64, 32), nn.ReLU(),
+            nn.Linear(32, 1), nn.ReLU(),
+            nn.Linear(1, 1), nn.ReLU(),
+            nn.Linear(1, 1),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.net(x)
+
+def _train_torch(model: nn.Module, X_train, y_train, *,
+                 epochs: int = 50, batch_size: int = 64,
+                 lr: float = 0.001, validation_split: float = 0.2,
+                 patience: int = 10) -> nn.Module:
+    """Standard training loop replacing  + model.fit()."""
+    X_t = torch.FloatTensor(X_train)
+    y_t = torch.FloatTensor(y_train)
+    if y_t.dim() == 1:
+        y_t = y_t.unsqueeze(1)
+    n_val = max(1, int(len(X_t) * validation_split))
+    X_val, y_val = X_t[-n_val:], y_t[-n_val:]
+    X_tr, y_tr = X_t[:-n_val], y_t[:-n_val]
+    loader = DataLoader(TensorDataset(X_tr, y_tr), batch_size=batch_size, shuffle=True)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    criterion = nn.MSELoss()
+    best, wait = float("inf"), 0
+    for _ in range(epochs):
+        model.train()
+        for xb, yb in loader:
+            optimizer.zero_grad()
+            criterion(model(xb), yb).backward()
+            optimizer.step()
+        model.eval()
+        with torch.no_grad():
+            val_loss = criterion(model(X_val), y_val).item()
+        if val_loss < best:
+            best, wait = val_loss, 0
+        else:
+            wait += 1
+            if wait >= patience:
+                break
+    return model
+
+
+def _predict_torch(model: nn.Module, X_test) -> "np.ndarray":
+    """Replace model.predict()."""
+    model.eval()
+    with torch.no_grad():
+        return model(torch.FloatTensor(X_test)).numpy()
 
 def build_mtl_model(input_dim, architecture="hard_sharing"):
     """
@@ -131,8 +223,7 @@ X_test_scaled = scaler.transform(X_test)
 logger.info(f"Train: {len(X_train):,}, Test: {len(X_test):,}")
 input_dim = X_train_scaled.shape[1]
 mtl_model = build_mtl_model(input_dim)
-mtl_model.compile(
-    optimizer=keras.optimizers.Adam(learning_rate=0.001),
+,
     loss={"co2_output": "mse", "nox_output": "mse", "so2_output": "mse"},
     metrics={
         "co2_output": ["mae", "mse"],
@@ -140,14 +231,7 @@ mtl_model.compile(
         "so2_output": ["mae", "mse"],
     },
 )
-history = mtl_model.fit(
-    X_train_scaled,
-    {"co2_output": y_co2_train, "nox_output": y_nox_train, "so2_output": y_so2_train},
-    validation_split=0.2,
-    epochs=50,
-    batch_size=64,
-    callbacks=[
-        keras.callbacks.EarlyStopping(patience=10, restore_best_weights=True),
+history = _train_torch(mtl_model, X_train_scaled, {"co2_output": y_co2_train),
         keras.callbacks.ReduceLROnPlateau(patience=5, factor=0.5),
     ],
     verbose=1,
@@ -179,8 +263,7 @@ def build_single_task_model(input_dim):
             layers.Dense(1),
         ]
     )
-    model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=0.001),
+    ,
         loss="mse",
         metrics=["mae", "mse"],
     )
@@ -189,35 +272,17 @@ def build_single_task_model(input_dim):
 
 logger.info("\nTraining single-task baselines...")
 co2_model = build_single_task_model(input_dim)
-co2_model.fit(
-    X_train_scaled,
-    y_co2_train,
-    validation_split=0.2,
-    epochs=50,
-    batch_size=64,
-    callbacks=[keras.callbacks.EarlyStopping(patience=10)],
+_train_torch(co2_model, X_train_scaled, y_co2_train)],
     verbose=0,
 )
 co2_baseline_mae = co2_model.evaluate(X_test_scaled, y_co2_test, verbose=0)[1]
 nox_model = build_single_task_model(input_dim)
-nox_model.fit(
-    X_train_scaled,
-    y_nox_train,
-    validation_split=0.2,
-    epochs=50,
-    batch_size=64,
-    callbacks=[keras.callbacks.EarlyStopping(patience=10)],
+_train_torch(nox_model, X_train_scaled, y_nox_train)],
     verbose=0,
 )
 nox_baseline_mae = nox_model.evaluate(X_test_scaled, y_nox_test, verbose=0)[1]
 so2_model = build_single_task_model(input_dim)
-so2_model.fit(
-    X_train_scaled,
-    y_so2_train,
-    validation_split=0.2,
-    epochs=50,
-    batch_size=64,
-    callbacks=[keras.callbacks.EarlyStopping(patience=10)],
+_train_torch(so2_model, X_train_scaled, y_so2_train)],
     verbose=0,
 )
 so2_baseline_mae = so2_model.evaluate(X_test_scaled, y_so2_test, verbose=0)[1]
@@ -278,19 +343,12 @@ for i, row in comparison.iterrows():
 plt.tight_layout()
 plt.savefig("mtl_vs_single_task.png", dpi=150)
 mtl_model_weighted = build_mtl_model(input_dim)
-mtl_model_weighted.compile(
-    optimizer=keras.optimizers.Adam(learning_rate=0.001),
+,
     loss={"co2_output": "mse", "nox_output": "mse", "so2_output": "mse"},
     loss_weights={"co2_output": 2.0, "nox_output": 1.0, "so2_output": 1.0},
     metrics={"co2_output": ["mae"], "nox_output": ["mae"], "so2_output": ["mae"]},
 )
-history_weighted = mtl_model_weighted.fit(
-    X_train_scaled,
-    {"co2_output": y_co2_train, "nox_output": y_nox_train, "so2_output": y_so2_train},
-    validation_split=0.2,
-    epochs=50,
-    batch_size=64,
-    callbacks=[keras.callbacks.EarlyStopping(patience=10)],
+history_weighted = _train_torch(mtl_model_weighted, X_train_scaled, {"co2_output": y_co2_train)],
     verbose=0,
 )
 results_weighted = mtl_model_weighted.evaluate(
@@ -332,7 +390,7 @@ def build_soft_sharing_model(input_dim, n_tasks=3):
 mtl_model.save("mtl_emissions_predictor.h5")
 loaded_model = keras.models.load_model("mtl_emissions_predictor.h5")
 new_plant = X_test_scaled[:1]
-co2_pred, nox_pred, so2_pred = loaded_model.predict(new_plant)
+co2_pred, nox_pred, so2_pred = _predict_torch(loaded_model, new_plant)
 logger.info(f"Predicted CO2: {np.expm1(co2_pred[0][0]):,.0f} tons")
 logger.info(f"Predicted NOx: {np.expm1(nox_pred[0][0]):,.0f} tons")
 logger.info(f"Predicted SO2: {np.expm1(so2_pred[0][0]):,.0f} tons")
@@ -395,8 +453,7 @@ model = keras.Sequential(
         layers.Dense(1),
     ]
 )
-model.compile(
-    optimizer=keras.optimizers.Adam(learning_rate=0.001),
+,
     loss="mse",
     metrics=["mae", "mse"],
 )
