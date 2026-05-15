@@ -25,7 +25,6 @@ sns.heatmap(corr, annot=True, cmap='RdYlGn', center=0, square=True, linewidths=2
 plt.title('Pollutant Correlations: Why MTL Works')
 plt.tight_layout()
 plt.savefig('pollutant_correlations.png', dpi=150)
-import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
