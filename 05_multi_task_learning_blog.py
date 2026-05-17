@@ -330,7 +330,8 @@ ax.set_xticks(x)
 ax.set_xticklabels(comparison["Task"])
 ax.legend(fontsize=11)
 ax.grid(True, alpha=0.3, axis="y")
-for i, row in comparison.iterrows():
+for row in comparison.itertuples():
+    i = row.Index
     ax.text(
         i,
         max(row["Single-Task MAE"], row["MTL MAE"]) + 0.02,
