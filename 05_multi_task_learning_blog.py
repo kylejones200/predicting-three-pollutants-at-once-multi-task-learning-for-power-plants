@@ -223,18 +223,10 @@ X_test_scaled = scaler.transform(X_test)
 logger.info(f"Train: {len(X_train):,}, Test: {len(X_test):,}")
 input_dim = X_train_scaled.shape[1]
 mtl_model = build_mtl_model(input_dim)
-,
-    loss={"co2_output": "mse", "nox_output": "mse", "so2_output": "mse"},
-    metrics={
-        "co2_output": ["mae", "mse"],
-        "nox_output": ["mae", "mse"],
-        "so2_output": ["mae", "mse"],
-    },
-)
-history = _train_torch(mtl_model, X_train_scaled, {"co2_output": y_co2_train),
-        keras.callbacks.ReduceLROnPlateau(patience=5, factor=0.5),
-    ],
-    verbose=1,
+history = _train_torch(
+    mtl_model,
+    X_train_scaled,
+    {"co2_output": y_co2_train, "nox_output": y_nox_train, "so2_output": y_so2_train},
 )
 results = mtl_model.evaluate(
     X_test_scaled,
@@ -263,28 +255,18 @@ def build_single_task_model(input_dim):
             layers.Dense(1),
         ]
     )
-    ,
-        loss="mse",
-        metrics=["mae", "mse"],
-    )
     return model
 
 
 logger.info("\nTraining single-task baselines...")
 co2_model = build_single_task_model(input_dim)
-_train_torch(co2_model, X_train_scaled, y_co2_train)],
-    verbose=0,
-)
+_train_torch(co2_model, X_train_scaled, y_co2_train)
 co2_baseline_mae = co2_model.evaluate(X_test_scaled, y_co2_test, verbose=0)[1]
 nox_model = build_single_task_model(input_dim)
-_train_torch(nox_model, X_train_scaled, y_nox_train)],
-    verbose=0,
-)
+_train_torch(nox_model, X_train_scaled, y_nox_train)
 nox_baseline_mae = nox_model.evaluate(X_test_scaled, y_nox_test, verbose=0)[1]
 so2_model = build_single_task_model(input_dim)
-_train_torch(so2_model, X_train_scaled, y_so2_train)],
-    verbose=0,
-)
+_train_torch(so2_model, X_train_scaled, y_so2_train)
 so2_baseline_mae = so2_model.evaluate(X_test_scaled, y_so2_test, verbose=0)[1]
 logger.info("\nSingle-Task Baselines:")
 logger.info(f"CO2 MAE: {co2_baseline_mae:.4f}")
@@ -344,13 +326,10 @@ for row in comparison.itertuples():
 plt.tight_layout()
 plt.savefig("mtl_vs_single_task.png", dpi=150)
 mtl_model_weighted = build_mtl_model(input_dim)
-,
-    loss={"co2_output": "mse", "nox_output": "mse", "so2_output": "mse"},
-    loss_weights={"co2_output": 2.0, "nox_output": 1.0, "so2_output": 1.0},
-    metrics={"co2_output": ["mae"], "nox_output": ["mae"], "so2_output": ["mae"]},
-)
-history_weighted = _train_torch(mtl_model_weighted, X_train_scaled, {"co2_output": y_co2_train)],
-    verbose=0,
+history_weighted = _train_torch(
+    mtl_model_weighted,
+    X_train_scaled,
+    {"co2_output": y_co2_train, "nox_output": y_nox_train, "so2_output": y_so2_train},
 )
 results_weighted = mtl_model_weighted.evaluate(
     X_test_scaled,
@@ -395,108 +374,3 @@ co2_pred, nox_pred, so2_pred = _predict_torch(loaded_model, new_plant)
 logger.info(f"Predicted CO2: {np.expm1(co2_pred[0][0]):,.0f} tons")
 logger.info(f"Predicted NOx: {np.expm1(nox_pred[0][0]):,.0f} tons")
 logger.info(f"Predicted SO2: {np.expm1(so2_pred[0][0]):,.0f} tons")
-inputs = keras.Input(shape=(input_dim,), name="input_features")
-shared = layers.Dense(128, activation="relu", name="shared_1")(inputs)
-shared = layers.BatchNormalization()(shared)
-shared = layers.Dropout(0.3)(shared)
-shared = layers.Dense(64, activation="relu", name="shared_2")(shared)
-shared = layers.BatchNormalization()(shared)
-shared = layers.Dropout(0.3)(shared)
-shared = layers.Dense(32, activation="relu", name="shared_3")(shared)
-shared = layers.BatchNormalization()(shared)
-co2_head = layers.Dense(16, activation="relu", name="co2_head")(shared)
-co2_output = layers.Dense(1, name="co2_output")(co2_head)
-nox_head = layers.Dense(16, activation="relu", name="nox_head")(shared)
-nox_output = layers.Dense(1, name="nox_output")(nox_head)
-so2_head = layers.Dense(16, activation="relu", name="so2_head")(shared)
-so2_output = layers.Dense(1, name="so2_output")(so2_head)
-model = keras.Model(
-    inputs=inputs,
-    outputs=[co2_output, nox_output, so2_output],
-    name="mtl_emissions_predictor",
-)
-return model
-Model: "mtl_emissions_predictor"
-__________________________________________________________________________________________________
-__________________________________________________________________________________________________
-optimizer = (keras.optimizers.Adam(learning_rate=0.001),)
-loss = ({"co2_output": "mse", "nox_output": "mse", "so2_output": "mse"},)
-metrics = {
-    "co2_output": ["mae", "mse"],
-    "nox_output": ["mae", "mse"],
-    "so2_output": ["mae", "mse"],
-}
-(X_train_scaled,)
-({"co2_output": y_co2_train, "nox_output": y_nox_train, "so2_output": y_so2_train},)
-validation_split = (0.2,)
-epochs = (50,)
-batch_size = (64,)
-callbacks = (
-    [
-        keras.callbacks.EarlyStopping(patience=10, restore_best_weights=True),
-        keras.callbacks.ReduceLROnPlateau(patience=5, factor=0.5),
-    ],
-)
-verbose = 1
-"Single-task model for comparison"
-model = keras.Sequential(
-    [
-        keras.Input(shape=(input_dim,)),
-        layers.Dense(128, activation="relu"),
-        layers.BatchNormalization(),
-        layers.Dropout(0.3),
-        layers.Dense(64, activation="relu"),
-        layers.BatchNormalization(),
-        layers.Dropout(0.3),
-        layers.Dense(32, activation="relu"),
-        layers.BatchNormalization(),
-        layers.Dense(16, activation="relu"),
-        layers.Dense(1),
-    ]
-)
-,
-    loss="mse",
-    metrics=["mae", "mse"],
-)
-return model
-ax.text(
-    i,
-    max(row["Single-Task MAE"], row["MTL MAE"]) + 0.02,
-    f"+{row['Improvement %']:.1f}%",
-    ha="center",
-    fontsize=11,
-    fontweight="bold",
-    color="green",
-)
-optimizer = (keras.optimizers.Adam(learning_rate=0.001),)
-loss = ({"co2_output": "mse", "nox_output": "mse", "so2_output": "mse"},)
-loss_weights = ({"co2_output": 2.0, "nox_output": 1.0, "so2_output": 1.0},)
-metrics = {"co2_output": ["mae"], "nox_output": ["mae"], "so2_output": ["mae"]}
-(X_train_scaled,)
-({"co2_output": y_co2_train, "nox_output": y_nox_train, "so2_output": y_so2_train},)
-validation_split = (0.2,)
-epochs = (50,)
-batch_size = (64,)
-callbacks = ([keras.callbacks.EarlyStopping(patience=10)],)
-verbose = 0
-(X_test_scaled,)
-({"co2_output": y_co2_test, "nox_output": y_nox_test, "so2_output": y_so2_test},)
-verbose = 0
-logger.info("Tasks may be unrelated or need different architectures")
-"\nSoft parameter sharing: separate networks with L2 regularization\nencouraging similarity\n"
-inputs = keras.Input(shape=(input_dim,))
-task_networks = []
-for i in range(n_tasks):
-    net = layers.Dense(
-        128, activation="relu", kernel_regularizer=keras.regularizers.l2(0.01)
-    )(inputs)
-    net = layers.Dense(
-        64, activation="relu", kernel_regularizer=keras.regularizers.l2(0.01)
-    )(net)
-    net = layers.Dense(32, activation="relu")(net)
-    task_networks.append(net)
-co2_output = layers.Dense(1, name="co2_output")(task_networks[0])
-nox_output = layers.Dense(1, name="nox_output")(task_networks[1])
-so2_output = layers.Dense(1, name="so2_output")(task_networks[2])
-model = keras.Model(inputs=inputs, outputs=[co2_output, nox_output, so2_output])
-return model
