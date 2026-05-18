@@ -5,16 +5,20 @@ This code was automatically extracted from the markdown file.
 You may need to adjust imports and add necessary dependencies.
 """
 
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader, TensorDataset
 import logging
 import sys
 
+import keras
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import torch
+import torch.nn as nn
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from tensorflow.keras import layers
+from torch.utils.data import DataLoader, TensorDataset
 
 logging.basicConfig(
     level=logging.INFO,
@@ -50,59 +54,107 @@ plt.savefig("pollutant_correlations.png", dpi=150)
 
 class _MLPForecaster(nn.Module):
     """MLP forecaster (auto-generated PyTorch replacement for Keras Sequential)."""
+
     def __init__(self, n_features: int, output_size: int = 1):
         super().__init__()
         self.net = nn.Sequential(
             nn.Flatten(),
-            nn.LazyLinear(128), nn.ReLU(),
-            nn.Linear(128, 64), nn.ReLU(),
-            nn.Linear(64, 32), nn.ReLU(),
-            nn.Linear(32, 16), nn.ReLU(),
-            nn.Linear(16, 1), nn.ReLU(),
-            nn.Linear(1, 16), nn.ReLU(),
-            nn.Linear(16, 1), nn.ReLU(),
-            nn.Linear(1, 16), nn.ReLU(),
-            nn.Linear(16, 1), nn.ReLU(),
-            nn.Linear(1, 128), nn.ReLU(),
-            nn.Linear(128, 64), nn.ReLU(),
-            nn.Linear(64, 32), nn.ReLU(),
-            nn.Linear(32, 16), nn.ReLU(),
-            nn.Linear(16, 1), nn.ReLU(),
-            nn.Linear(1, 128), nn.ReLU(),
-            nn.Linear(128, 64), nn.ReLU(),
-            nn.Linear(64, 32), nn.ReLU(),
-            nn.Linear(32, 1), nn.ReLU(),
-            nn.Linear(1, 1), nn.ReLU(),
-            nn.Linear(1, 1), nn.ReLU(),
-            nn.Linear(1, 128), nn.ReLU(),
-            nn.Linear(128, 64), nn.ReLU(),
-            nn.Linear(64, 32), nn.ReLU(),
-            nn.Linear(32, 16), nn.ReLU(),
-            nn.Linear(16, 1), nn.ReLU(),
-            nn.Linear(1, 16), nn.ReLU(),
-            nn.Linear(16, 1), nn.ReLU(),
-            nn.Linear(1, 16), nn.ReLU(),
-            nn.Linear(16, 1), nn.ReLU(),
-            nn.Linear(1, 128), nn.ReLU(),
-            nn.Linear(128, 64), nn.ReLU(),
-            nn.Linear(64, 32), nn.ReLU(),
-            nn.Linear(32, 16), nn.ReLU(),
-            nn.Linear(16, 1), nn.ReLU(),
-            nn.Linear(1, 128), nn.ReLU(),
-            nn.Linear(128, 64), nn.ReLU(),
-            nn.Linear(64, 32), nn.ReLU(),
-            nn.Linear(32, 1), nn.ReLU(),
-            nn.Linear(1, 1), nn.ReLU(),
+            nn.LazyLinear(128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, 16),
+            nn.ReLU(),
+            nn.Linear(16, 1),
+            nn.ReLU(),
+            nn.Linear(1, 16),
+            nn.ReLU(),
+            nn.Linear(16, 1),
+            nn.ReLU(),
+            nn.Linear(1, 16),
+            nn.ReLU(),
+            nn.Linear(16, 1),
+            nn.ReLU(),
+            nn.Linear(1, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, 16),
+            nn.ReLU(),
+            nn.Linear(16, 1),
+            nn.ReLU(),
+            nn.Linear(1, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, 1),
+            nn.ReLU(),
+            nn.Linear(1, 1),
+            nn.ReLU(),
+            nn.Linear(1, 1),
+            nn.ReLU(),
+            nn.Linear(1, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, 16),
+            nn.ReLU(),
+            nn.Linear(16, 1),
+            nn.ReLU(),
+            nn.Linear(1, 16),
+            nn.ReLU(),
+            nn.Linear(16, 1),
+            nn.ReLU(),
+            nn.Linear(1, 16),
+            nn.ReLU(),
+            nn.Linear(16, 1),
+            nn.ReLU(),
+            nn.Linear(1, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, 16),
+            nn.ReLU(),
+            nn.Linear(16, 1),
+            nn.ReLU(),
+            nn.Linear(1, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, 1),
+            nn.ReLU(),
+            nn.Linear(1, 1),
+            nn.ReLU(),
             nn.Linear(1, 1),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.net(x)
 
-def _train_torch(model: nn.Module, X_train, y_train, *,
-                 epochs: int = 50, batch_size: int = 64,
-                 lr: float = 0.001, validation_split: float = 0.2,
-                 patience: int = 10) -> nn.Module:
+
+def _train_torch(
+    model: nn.Module,
+    X_train,
+    y_train,
+    *,
+    epochs: int = 50,
+    batch_size: int = 64,
+    lr: float = 0.001,
+    validation_split: float = 0.2,
+    patience: int = 10,
+) -> nn.Module:
     """Standard training loop replacing  + model.fit()."""
     X_t = torch.FloatTensor(X_train)
     y_t = torch.FloatTensor(y_train)
@@ -139,14 +191,13 @@ def _predict_torch(model: nn.Module, X_test) -> "np.ndarray":
     with torch.no_grad():
         return model(torch.FloatTensor(X_test)).numpy()
 
+
 def build_mtl_model(input_dim, architecture="hard_sharing"):
     """
     Build multi-task learning model
-
     Parameters:
     - input_dim: Number of input features
     - architecture: 'hard_sharing' or 'soft_sharing'
-
     Returns:
     - Keras model with three outputs (CO2, NOx, SO2)
     """
@@ -175,8 +226,6 @@ def build_mtl_model(input_dim, architecture="hard_sharing"):
 
 model = build_mtl_model(input_dim=10)
 model.summary()
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 
 feature_cols = [
     "Plant nameplate capacity (MW)",
@@ -187,12 +236,8 @@ feature_cols = [
 ]
 X = plants_2023[feature_cols].copy()
 X["capacity_mw"] = pd.to_numeric(X["Plant nameplate capacity (MW)"], errors="coerce")
-X["generation_mwh"] = pd.to_numeric(
-    X["Plant annual net generation (MWh)"], errors="coerce"
-)
-X["heat_input_mmbtu"] = pd.to_numeric(
-    X["Plant annual heat input (MMBtu)"], errors="coerce"
-)
+X["generation_mwh"] = pd.to_numeric(X["Plant annual net generation (MWh)"], errors="coerce")
+X["heat_input_mmbtu"] = pd.to_numeric(X["Plant annual heat input (MMBtu)"], errors="coerce")
 X_encoded = pd.get_dummies(
     X[["Plant state abbreviation", "Plant primary fuel category"]], drop_first=True
 )
@@ -211,12 +256,8 @@ logger.info(f"Training on {len(X_features):,} plants")
 X_train, X_test, y_co2_train, y_co2_test = train_test_split(
     X_features, y_co2, test_size=0.2, random_state=42
 )
-_, _, y_nox_train, y_nox_test = train_test_split(
-    X_features, y_nox, test_size=0.2, random_state=42
-)
-_, _, y_so2_train, y_so2_test = train_test_split(
-    X_features, y_so2, test_size=0.2, random_state=42
-)
+_, _, y_nox_train, y_nox_test = train_test_split(X_features, y_nox, test_size=0.2, random_state=42)
+_, _, y_so2_train, y_so2_test = train_test_split(X_features, y_so2, test_size=0.2, random_state=42)
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 X_test_scaled = scaler.transform(X_test)
@@ -280,9 +321,7 @@ comparison = pd.DataFrame(
     }
 )
 comparison["Improvement %"] = (
-    (comparison["Single-Task MAE"] - comparison["MTL MAE"])
-    / comparison["Single-Task MAE"]
-    * 100
+    (comparison["Single-Task MAE"] - comparison["MTL MAE"]) / comparison["Single-Task MAE"] * 100
 )
 logger.info("\nMTL vs Single-Task Comparison:")
 logger.info(comparison.to_string(index=False))
@@ -352,12 +391,12 @@ def build_soft_sharing_model(input_dim, n_tasks=3):
     inputs = keras.Input(shape=(input_dim,))
     task_networks = []
     for i in range(n_tasks):
-        net = layers.Dense(
-            128, activation="relu", kernel_regularizer=keras.regularizers.l2(0.01)
-        )(inputs)
-        net = layers.Dense(
-            64, activation="relu", kernel_regularizer=keras.regularizers.l2(0.01)
-        )(net)
+        net = layers.Dense(128, activation="relu", kernel_regularizer=keras.regularizers.l2(0.01))(
+            inputs
+        )
+        net = layers.Dense(64, activation="relu", kernel_regularizer=keras.regularizers.l2(0.01))(
+            net
+        )
         net = layers.Dense(32, activation="relu")(net)
         task_networks.append(net)
     co2_output = layers.Dense(1, name="co2_output")(task_networks[0])
