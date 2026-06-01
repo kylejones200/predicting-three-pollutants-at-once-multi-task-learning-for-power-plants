@@ -1,0 +1,15 @@
+[package]
+name = "predicting_three_pollutants_at_once_multi_task_learning_for_power_plants_rs"
+description = "Python bindings (PyO3) for predicting_three_pollutants_at_once_multi_task_learning_for_power_plants_core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "predicting_three_pollutants_at_once_multi_task_learning_for_power_plants_rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+predicting_three_pollutants_at_once_multi_task_learning_for_power_plants_core = { path = "../core" }
+pyo3 = { version = "0.28", features = ["extension-module"] }
+numpy = "0.28"

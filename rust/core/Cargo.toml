@@ -1,0 +1,9 @@
+[package]
+name = "predicting_three_pollutants_at_once_multi_task_learning_for_power_plants_core"
+description = "Multi-task linear prediction: y_hat = X @ W (row-major)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+path = "src/lib.rs"

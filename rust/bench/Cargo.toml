@@ -1,0 +1,13 @@
+[package]
+name = "predicting_three_pollutants_at_once_multi_task_learning_for_power_plants_bench"
+description = "Standalone Rust benchmark (no Python)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "bench"
+path = "src/main.rs"
+
+[dependencies]
+predicting_three_pollutants_at_once_multi_task_learning_for_power_plants_core = { path = "../core" }
